@@ -1,0 +1,65 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Northumbrian Water",
+        "description": "Sign in with the email address and password you use on nwl.co.uk.",
+        "data": {
+          "email": "Email address",
+          "password": "Password"
+        }
+      },
+      "meter": {
+        "title": "Choose a meter",
+        "description": "This login covers more than one water meter.",
+        "data": {
+          "meter_serial": "Meter"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in again",
+        "description": "The saved password for {email} is no longer accepted.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Sign-in was refused. Check the email and password. After several failed attempts the portal locks the account and starts requiring a CAPTCHA, which this integration cannot answer.",
+      "cannot_connect": "Could not reach the Northumbrian Water portal.",
+      "meter_missing": "That meter is no longer listed on this account."
+    },
+    "abort": {
+      "already_configured": "This meter is already set up.",
+      "reauth_successful": "Signed in again successfully.",
+      "wrong_account": "Those credentials are for a different meter than the one this entry tracks."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "description": "Readings are published a day or two late and are occasionally corrected afterwards. Each refresh re-imports this many days so late arrivals are picked up.",
+        "data": {
+          "lookback_days": "Days to re-import on every refresh"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_reading_time": {
+        "name": "Last reading time"
+      },
+      "last_full_day_usage": {
+        "name": "Last full day usage"
+      },
+      "last_full_day_cost": {
+        "name": "Last full day cost"
+      },
+      "hours_in_last_import": {
+        "name": "Hours in last import"
+      }
+    }
+  }
+}

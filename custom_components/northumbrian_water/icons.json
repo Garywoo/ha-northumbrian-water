@@ -1,0 +1,12 @@
+{
+  "entity": {
+    "sensor": {
+      "hours_in_last_import": {
+        "default": "mdi:database-import-outline"
+      },
+      "last_full_day_cost": {
+        "default": "mdi:cash"
+      }
+    }
+  }
+}
