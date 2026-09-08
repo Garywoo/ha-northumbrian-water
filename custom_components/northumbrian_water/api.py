@@ -21,10 +21,10 @@ The call chain the web app uses, and that this client reproduces:
 
    Steps 3 to 5 are not only for discovery: they are what makes the session
    able to answer step 7 at all. See the note on session state below.
-6. ``POST /api/Customer/GetSmartAuthToken``     {refresh_Token}
+6. ``POST /api/Customer/GetSmartAuthToken``     {access_token}
        -> {Access_token, Refresh_token, Id_token, Expires_in, ...}
-          Id_token is the JWT used to authorise usage calls. The refresh token
-          rotates on every call, so it must be used strictly once.
+          Id_token is the JWT used to authorise usage calls. Both tokens rotate
+          on every call, so the response supersedes what was sent.
 7. ``POST /api/Customer/GetHourlyWaterUsage``   {AccountId, Authorization, MeterSerial, StartDate}
        -> 24 hourly readings for that day.
 
@@ -72,6 +72,12 @@ Behaviours worth knowing, each established by experiment against the live site:
 * The ``smartUserTokenInfo`` cookie is set here because ``getSmartAuthToken()``
   sets it, and the server may well read it. It was not what fixed the 401, and
   whether the usage calls need it has not been isolated.
+* ``GetSmartAuthToken`` is keyed on the **access** token, not the refresh token.
+  The site's ``getSmartAuthToken()`` reads ``smartTokenInfo`` -- which login
+  writes as the whole ``SaveUserProfile`` response -- and posts only its
+  ``access_token``. Sending the wrong field yields HTTP 200 with a body that
+  simply has no ``Id_token`` in it, which is why the failure surfaces as a
+  missing token rather than as a rejection.
 
 A note on method, because it cost a lot of time here: the site sets several
 cookies from JavaScript, so captured HTTP traffic alone does not explain how it
@@ -252,6 +258,8 @@ class NorthumbrianWaterClient:
         self._timeout = aiohttp.ClientTimeout(total=request_timeout)
 
         self._refresh_token: str | None = None
+        # What GetSmartAuthToken is actually keyed on; see the module docstring.
+        self._access_token: str | None = None
         self._person_id: str | None = None
         self._id_token: str | None = None
         self._id_token_expires: datetime | None = None
@@ -440,6 +448,12 @@ class NorthumbrianWaterClient:
         self._refresh_token = (
             saved.get("refresh_token") or response.get("refresh_token") or ""
         ).strip() or None
+        # The site stores the SaveUserProfile response as smartTokenInfo and
+        # takes the access token from there, so prefer that copy over the one
+        # the login returned.
+        self._access_token = (
+            saved.get("access_token") or response.get("access_token") or ""
+        ).strip() or None
         self._person_id = (
             str(saved.get("PersonId") or (profile or {}).get("Uid") or "").strip()
             or None
@@ -447,6 +461,8 @@ class NorthumbrianWaterClient:
 
         if not self._refresh_token:
             raise NWLApiError("Login succeeded but no refresh token was issued")
+        if not self._access_token:
+            raise NWLApiError("Login succeeded but no access token was issued")
         if not self._person_id:
             raise NWLApiError("Login succeeded but no PersonId was returned")
 
@@ -557,13 +573,13 @@ class NorthumbrianWaterClient:
             ):
                 return self._id_token
 
-            if not self._refresh_token:
+            if not self._access_token:
                 await self._login_locked()
 
             try:
                 token = await self._rotate_token_locked()
             except (NWLAuthError, NWLApiError):
-                # The refresh token is single use and rotates; if it has gone
+                # The access token is single use and rotates; if it has gone
                 # stale the only way back is a full login.
                 _LOGGER.debug("Token rotation failed, logging in again")
                 await self._login_locked()
@@ -574,11 +590,21 @@ class NorthumbrianWaterClient:
         raw = await self._request_text(
             "POST",
             EP_SMART_TOKEN,
-            json_body={"refresh_Token": self._refresh_token},
+            json_body={"access_token": self._access_token},
         )
         payload = _loads(raw)
         if not isinstance(payload, dict) or not payload.get("Id_token"):
-            raise NWLSessionError("GetSmartAuthToken did not return an Id_token")
+            # The endpoint answers a rejected token with HTTP 200 and a body
+            # that just lacks the token, so name what did come back. Keys only:
+            # a body that *does* carry tokens must never reach the log.
+            shape = (
+                ", ".join(sorted(payload))
+                if isinstance(payload, dict)
+                else type(payload).__name__
+            )
+            raise NWLSessionError(
+                f"GetSmartAuthToken did not return an Id_token (returned {shape})"
+            )
 
         # This is the credential the usage endpoints actually authenticate
         # against. The site's getSmartAuthToken() stores the response verbatim
@@ -589,7 +615,11 @@ class NorthumbrianWaterClient:
         self._set_site_cookies(smartUserTokenInfo=raw)
 
         id_token = str(payload["Id_token"])
-        # The rotated refresh token supersedes the one we just spent.
+        # The rotated tokens supersede the ones we just spent. The site writes
+        # both back into smartTokenInfo and sends the new access token on its
+        # next call, so hold them the same way.
+        if payload.get("Access_token"):
+            self._access_token = str(payload["Access_token"]).strip()
         if payload.get("Refresh_token"):
             self._refresh_token = str(payload["Refresh_token"]).strip()
 
