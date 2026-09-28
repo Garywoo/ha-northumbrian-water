@@ -1,4 +1,5 @@
 {
   "name": "Northumbrian Water",
-  "homeassistant": "2025.8.0"
+  "homeassistant": "2025.8.0",
+  "country": "GB"
 }
