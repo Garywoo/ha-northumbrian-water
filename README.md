@@ -15,10 +15,17 @@ Pulls hourly water consumption and cost data from the Northumbrian Water custome
 
 ### HACS (recommended)
 
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Garywoo&repository=ha-northumbrian-water&category=integration)
+
+The button opens this repository in HACS on your own Home Assistant, which covers steps 1 to 3. Download it, restart Home Assistant, then continue from step 4. To add it by hand instead:
+
 1. In HACS, open the overflow menu (⋮) and choose **Custom repositories**.
 2. Add `https://github.com/Garywoo/ha-northumbrian-water` with type **Integration**.
 3. Search HACS for **Northumbrian Water**, download it, then restart Home Assistant.
-4. Go to **Settings > Devices & services > Add integration** and search for **Northumbrian Water**.
+4. Go to **Settings > Devices & services > Add integration** and search for **Northumbrian Water**, or use this button:
+
+   [![Open your Home Assistant instance and start setting up Northumbrian Water.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=northumbrian_water)
+
 5. Enter the email address and password you use on the website.
 
 ### Manual
