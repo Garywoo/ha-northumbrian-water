@@ -21,9 +21,6 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # The domain is not in home-assistant/brands yet; remove this
-          # exemption once the brands PR is merged.
-          ignore: brands
 
   hassfest:
     name: Hassfest
