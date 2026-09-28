@@ -11,6 +11,11 @@ jobs:
   hacs:
     name: HACS validation
     runs-on: ubuntu-latest
+    # hacs/action reads hacs.json and manifest.json over unauthenticated
+    # raw.githubusercontent.com, which 404s on a private repository and makes
+    # the hacsjson/integration_manifest checks fail. HACS inclusion requires a
+    # public repo anyway, so skip the job until this one is published.
+    if: github.event.repository.private == false
     steps:
       - uses: actions/checkout@v4
       - uses: hacs/action@main
